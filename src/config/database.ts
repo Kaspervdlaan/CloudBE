@@ -20,8 +20,10 @@ export function getPool(): Pool {
       }
     }
     
+    // Default to 'localhost' for local development
+    // In Docker, DB_HOST will be explicitly set to 'postgres' via docker compose
     const config = {
-      host: process.env.DB_HOST || 'postgres',
+      host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '5432'),
       database: process.env.DB_NAME || 'drive_db',
       user: process.env.DB_USER || 'drive_user',
@@ -45,16 +47,70 @@ export function getPool(): Pool {
 }
 
 export async function initializeDatabase(): Promise<void> {
+  const dbName = process.env.DB_NAME || 'drive_db';
+  const dbUser = process.env.DB_USER || 'drive_user';
+  const dbPassword = process.env.DB_PASSWORD || 'drive_password';
+  // Default to 'localhost' for local development
+  // In Docker, DB_HOST will be explicitly set to 'postgres' via docker compose
+  const dbHost = process.env.DB_HOST || 'localhost';
+  const dbPort = parseInt(process.env.DB_PORT || '5432');
+
+  // First, connect to default 'postgres' database to ensure our database exists
+  const adminPool = new Pool({
+    host: dbHost,
+    port: dbPort,
+    database: 'postgres',
+    user: dbUser,
+    password: dbPassword,
+  });
+
+  try {
+    const adminClient = await adminPool.connect();
+    try {
+      // Check if database exists
+      const result = await adminClient.query(
+        `SELECT 1 FROM pg_database WHERE datname = $1`,
+        [dbName]
+      );
+      
+      if (result.rows.length === 0) {
+        console.log(`Creating database ${dbName}...`);
+        await adminClient.query(`CREATE DATABASE ${dbName}`);
+        console.log(`Database ${dbName} created successfully`);
+      }
+    } finally {
+      adminClient.release();
+    }
+    await adminPool.end();
+  } catch (error: any) {
+    console.error('Error ensuring database exists:', error);
+    // Continue anyway - database might already exist
+  }
+
+  // Now connect to our actual database
   const client = await getPool().connect();
   
   try {
     // Read and execute SQL schema
-    // In Docker, the SQL file is copied to dist/config/database.sql
-    // For local dev, it might be in src/config/database.sql
-    let sqlPath = path.join(__dirname, 'database.sql');
-    if (!fs.existsSync(sqlPath)) {
-      // Try src directory (for local development)
-      sqlPath = path.join(__dirname, '../src/config/database.sql');
+    // Try multiple paths to find the SQL file (works in both dev and production)
+    let sqlPath: string | null = null;
+    
+    // Try paths in order of likelihood
+    const possiblePaths = [
+      path.join(__dirname, 'database.sql'), // Production: dist/config/database.sql
+      path.join(__dirname, '../src/config/database.sql'), // Dev: src/config/database.sql from dist
+      path.join(process.cwd(), 'src/config/database.sql'), // Absolute path from project root
+    ];
+    
+    for (const possiblePath of possiblePaths) {
+      if (fs.existsSync(possiblePath)) {
+        sqlPath = possiblePath;
+        break;
+      }
+    }
+    
+    if (!sqlPath) {
+      throw new Error(`Could not find database.sql file. Tried: ${possiblePaths.join(', ')}`);
     }
     
     const sql = fs.readFileSync(sqlPath, 'utf8');
