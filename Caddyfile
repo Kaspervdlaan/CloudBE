@@ -1,0 +1,38 @@
+# Caddyfile for Drive Backend API
+# This file should be placed in /etc/caddy/Caddyfile (system-wide) or run with: caddy run --config Caddyfile
+
+api.livingcloud.app {
+	# Reverse proxy to the API container
+	# When running in Docker, use service name "api:3001"
+	# When running on host, use "localhost:3001"
+	reverse_proxy api:3001 {
+		# Pass original host header
+		header_up Host {host}
+		header_up X-Real-IP {remote}
+
+		# Health check
+		health_uri /health
+		health_interval 30s
+		health_timeout 5s
+	}
+
+	# Enable compression
+	encode gzip zstd
+
+	# Logging
+	log {
+		output file /var/log/caddy/api.log
+		level INFO
+	}
+
+	# Security headers (some are handled by the API, but Caddy can add more)
+	header {
+		# Remove Server header for security
+		-Server
+		# Add security headers
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}
+

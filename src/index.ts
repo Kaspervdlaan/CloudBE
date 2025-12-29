@@ -8,6 +8,7 @@ import passport from 'passport';
 import { initializeDatabase } from './config/database';
 import filesRoutes from './routes/filesRoutes';
 import authRoutes from './routes/authRoutes';
+import aiRoutes from './routes/aiRoutes';
 import { createFolder } from './controllers/filesController';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { ensureDirectoryExists } from './utils/fileUtils';
@@ -18,6 +19,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.API_PORT || 3001;
 const isProduction = process.env.NODE_ENV === 'production';
+
+// Trust proxy (needed when behind reverse proxy like Caddy)
+app.set('trust proxy', true);
 
 // Security headers middleware
 app.use(helmet({
@@ -101,6 +105,7 @@ app.get('/health', (req, res) => {
 // API routes with rate limiting
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/files', fileLimiter, filesRoutes);
+app.use('/api/ai', aiRoutes);
 // Note: /api/files/folders route is handled by filesRoutes with authentication
 
 // Error handling
