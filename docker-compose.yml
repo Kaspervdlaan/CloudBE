@@ -132,6 +132,49 @@ services:
     networks:
       - drive-network
 
+  # Gluetun VPN (NordVPN)
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: drive-gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    environment:
+      - VPN_SERVICE_PROVIDER=nordvpn
+      - VPN_TYPE=openvpn
+      - OPENVPN_USER=mT9e8W3iwaSk4vHVk1UKCMpE
+      - OPENVPN_PASSWORD=7AA8Q1TmHEnkyqEWzYkshgCR
+      - UPDATER_PERIOD=24h
+    volumes:
+      - gluetun_data:/gluetun
+    ports:
+      - "6800:6800"  # aria2 RPC port
+    networks:
+      - drive-network
+    restart: unless-stopped
+
+  # aria2 downloader (routed through VPN)
+  aria2:
+    image: p3terx/aria2-pro:latest
+    container_name: drive-aria2
+    network_mode: "service:gluetun"  # Route through VPN
+    environment:
+      - RPC_SECRET=${ARIA2_RPC_SECRET}
+      - RPC_PORT=6800
+      - LISTEN_PORT=6888
+      - PUID=1000
+      - PGID=1000
+      - UMASK=022
+    volumes:
+      - ./aria2/aria2.conf:/config/aria2.conf:ro
+      - aria2_data:/data
+      - /home/kasper/Videos:/data/movies
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_started
+
 volumes:
   postgres_data:
     driver: local
@@ -146,6 +189,11 @@ volumes:
   plex_config:
     driver: local
   plex_transcode:
+    driver: local
+  # VPN and aria2 volumes
+  gluetun_data:
+    driver: local
+  aria2_data:
     driver: local
 
 networks:
