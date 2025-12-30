@@ -104,6 +104,34 @@ services:
       - drive-network
     restart: unless-stopped
 
+  # Plex Media Server
+  plex:
+    image: plexinc/pms-docker:latest
+    container_name: drive-plex
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Paris
+      - PLEX_CLAIM=${PLEX_CLAIM:-}
+      - PUID=1000
+      - PGID=1000
+      - VERSION=docker
+    volumes:
+      - plex_config:/config
+      - plex_transcode:/transcode
+      - ./storage/uploads:/data/uploads:ro
+      - /home/kasper/Videos:/data/movies:ro
+      # Add more media directories here if needed
+      # - /path/to/tv-shows:/data/tv-shows:ro
+      # - /path/to/music:/data/music:ro
+    ports:
+      - "32400:32400/tcp"
+      - "32400:32400/udp"
+      - "32469:32469/tcp"  # DLNA
+      - "5353:5353/udp"     # Bonjour
+      - "1900:1900/udp"     # DLNA
+    networks:
+      - drive-network
+
 volumes:
   postgres_data:
     driver: local
@@ -113,6 +141,11 @@ volumes:
     driver: local
   # ✅ Ollama persistent volume
   ollama_data:
+    driver: local
+  # Plex volumes
+  plex_config:
+    driver: local
+  plex_transcode:
     driver: local
 
 networks:

@@ -31,3 +31,33 @@ api.livingcloud.app {
 	}
 }
 
+plex.livingcloud.app {
+	# Reverse proxy to Plex Media Server
+	reverse_proxy drive-plex:32400 {
+		# Use HTTP/1.1 only (Plex doesn't support HTTP/2 properly)
+		transport http {
+			versions 1.1
+		}
+		
+		# Pass the public hostname so Plex generates correct redirects
+		header_up Host plex.livingcloud.app
+		header_up X-Real-IP {remote}
+		header_up X-Forwarded-For {remote}
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	# Disable compression for streaming media
+	# Plex handles its own compression
+
+	# Logging
+	log {
+		output stdout
+		level INFO
+	}
+
+	# Minimal headers for Plex compatibility
+	header {
+		-Server
+	}
+}
+
