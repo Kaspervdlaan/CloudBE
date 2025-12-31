@@ -69,6 +69,10 @@ services:
       OLLAMA_BASE_URL: http://drive-ollama:11434
       OLLAMA_MODEL: llama3.2:3b
 
+      # ✅ aria2 connection (through gluetun network)
+      ARIA2_RPC_URL: http://drive-gluetun:6800/jsonrpc
+      ARIA2_RPC_SECRET: ${ARIA2_RPC_SECRET}
+
       # qwen2.5-coder:0.5b
 
     # Expose API port for local development access
