@@ -18,6 +18,9 @@ RUN npm run build
 # Production stage
 FROM node:20-alpine
 
+# Install Docker CLI for docker exec commands (YouTube downloads)
+RUN apk add --no-cache docker-cli
+
 WORKDIR /app
 
 # Copy package files

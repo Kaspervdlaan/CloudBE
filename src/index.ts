@@ -10,6 +10,7 @@ import filesRoutes from './routes/filesRoutes';
 import authRoutes from './routes/authRoutes';
 import aiRoutes from './routes/aiRoutes';
 import torrentRoutes from './routes/torrentRoutes';
+import youtubeRoutes from './routes/youtubeRoutes';
 import { createFolder } from './controllers/filesController';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { ensureDirectoryExists } from './utils/fileUtils';
@@ -108,6 +109,7 @@ app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/files', fileLimiter, filesRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/torrents', authLimiter, torrentRoutes);
+app.use('/api/youtube', authLimiter, youtubeRoutes);
 // Note: /api/files/folders route is handled by filesRoutes with authentication
 
 // Error handling

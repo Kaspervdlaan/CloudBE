@@ -82,6 +82,7 @@ services:
     volumes:
       - ./storage/uploads:/app/storage/uploads
       - ./storage/thumbnails:/app/storage/thumbnails
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # For docker exec commands (YouTube downloads)
     depends_on:
       postgres:
         condition: service_healthy
@@ -173,6 +174,22 @@ services:
     volumes:
       - ./aria2/aria2.conf:/config/aria2.conf:ro
       - aria2_data:/data
+      - /home/kasper/Videos:/data/movies
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_started
+
+  # yt-dlp for YouTube downloads (routed through VPN)
+  yt-dlp:
+    build:
+      context: ./docker-ytdlp
+      dockerfile: Dockerfile
+    container_name: drive-ytdlp
+    network_mode: "service:gluetun"  # Route through VPN
+    environment:
+      - TZ=Europe/Paris
+    volumes:
       - /home/kasper/Videos:/data/movies
     restart: unless-stopped
     depends_on:
